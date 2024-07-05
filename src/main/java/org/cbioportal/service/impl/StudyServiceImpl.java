@@ -1,5 +1,13 @@
 package org.cbioportal.service.impl;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.cbioportal.model.CancerStudy;
 import org.cbioportal.model.CancerStudyTags;
 import org.cbioportal.model.TypeOfCancer;
@@ -11,19 +19,27 @@ import org.cbioportal.service.StudyService;
 import org.cbioportal.service.exception.StudyNotFoundException;
 import org.cbioportal.utils.security.AccessLevel;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PostFilter;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class StudyServiceImpl implements StudyService {
+    @Value("${extnserver.service.url:}")
+    private String extnServerServiceURL;
 
     @Autowired
     private StudyRepository studyRepository;
@@ -135,4 +151,60 @@ public class StudyServiceImpl implements StudyService {
         }
         return matchingStudies;
     }
+
+    @Override
+    public String processFile(MultipartFile file) {  
+        LinkedMultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
+        String response;
+        RestTemplate restTemplate = new RestTemplate();
+
+        try {
+            if (!file.isEmpty()) {
+                map.add("file", new MultipartInputStreamFileResource(file.getInputStream(), file.getOriginalFilename()));
+            }
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            String url = extnServerServiceURL;
+
+            HttpEntity<LinkedMultiValueMap<String, Object>> requestEntity = new HttpEntity<>(map, headers);
+            ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+
+            // Check the status code
+            if (responseEntity.getStatusCode() == HttpStatus.OK) {
+                response = "File uploaded successfully";
+            } else {
+                response = "File upload failed: " + responseEntity.getStatusCode();
+            }
+
+        } catch (HttpStatusCodeException e) {
+            response = e.getResponseBodyAsString();
+        } catch (Exception e) {
+            response = e.getMessage();
+        }
+
+        return response;
+    }
 }
+
+class MultipartInputStreamFileResource extends InputStreamResource {
+
+    private final String filename;
+
+    MultipartInputStreamFileResource(InputStream inputStream, String filename) {
+        super(inputStream);
+        this.filename = filename;
+    }
+
+    @Override
+    public String getFilename() {
+        return this.filename;
+    }
+
+    @Override
+    public long contentLength() throws IOException {
+        return -1; // we do not want to generally read the whole stream into memory ...
+    }
+}
+

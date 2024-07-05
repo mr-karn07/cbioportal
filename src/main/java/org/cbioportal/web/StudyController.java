@@ -44,6 +44,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -209,6 +210,25 @@ public class StudyController {
         List<CancerStudyTags> cancerStudyTags = studyService.getTagsForMultipleStudies(studyIds);
 
         return new ResponseEntity<>(cancerStudyTags, HttpStatus.OK);
+    }
+
+    // API to upload a file
+    @PreAuthorize("hasPermission('FILE_UPLOAD', T(org.cbioportal.utils.security.AccessLevel).WRITE)")
+    @RequestMapping(value = "/studies/upload", method = RequestMethod.POST, consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(description = "Upload a file")
+    @ApiResponse(responseCode = "200", description = "File uploaded successfully",
+        content = @Content(schema = @Schema(implementation = String.class)))
+    public ResponseEntity<String> uploadFile(
+        @Parameter(required = true, description = "File to be uploaded")
+        @RequestParam("file") MultipartFile file) {
+
+        String response = studyService.processFile(file);
+
+        if ("File uploaded successfully".equals(response)) {
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     
     private AccessLevel getAccessLevel() {

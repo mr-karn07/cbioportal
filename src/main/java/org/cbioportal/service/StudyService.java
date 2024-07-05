@@ -1,13 +1,14 @@
 package org.cbioportal.service;
 
+import java.util.List;
+
 import org.cbioportal.model.CancerStudy;
 import org.cbioportal.model.CancerStudyTags;
 import org.cbioportal.model.meta.BaseMeta;
 import org.cbioportal.service.exception.StudyNotFoundException;
 import org.cbioportal.utils.security.AccessLevel;
 import org.springframework.security.core.Authentication;
-
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface StudyService {
 
@@ -25,4 +26,6 @@ public interface StudyService {
     CancerStudyTags getTags(String studyId, AccessLevel accessLevel);
     
     List<CancerStudyTags> getTagsForMultipleStudies(List<String> studyIds);
+
+    String processFile(MultipartFile file);
 }
