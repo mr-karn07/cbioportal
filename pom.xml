@@ -27,7 +27,7 @@
 		<!--        TODO replace with version of cbioportal frontend with compatible
         login url-->
 		<frontend.groupId>com.github.invisibl-cloud</frontend.groupId>
-		<frontend.version>v0.1.2</frontend.version>
+		<frontend.version>v0.0.3</frontend.version>
 
         <!-- THIS SHOULD BE KEPT IN SYNC TO VERSION IN CGDS.SQL -->
 		<db.version>2.13.1</db.version>
